@@ -1,41 +1,39 @@
-"use client"
+'use client'
 
-import { useUser } from "@/context/user-context"
-import { supabase } from "@/lib/supabase"
-import { useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { useUser } from '@/context/user-context'
+import { supabase } from '@/lib/supabase'
+import { useRouter } from 'next/navigation'
+import { LogOut, UserCircle } from 'lucide-react'
 
 export default function TopBar() {
-  const { user, role, loading } = useUser()
+  const { user, role } = useUser()
   const router = useRouter()
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
-    router.push("/auth/login")
+    router.push('/auth/login')
   }
 
-  if (loading) return <div className="w-full border-b px-6 py-3 text-sm">Loading...</div>
-  if (!user) return null
-
-  const name = user.user_metadata?.name || "Trader"
-  const initials = name.charAt(0).toUpperCase()
-
   return (
-    <div className="w-full border-b px-6 py-3 flex items-center justify-between bg-white dark:bg-zinc-900">
-      <div className="flex items-center gap-3">
-        <Avatar className="h-8 w-8">
-          <AvatarFallback>{initials}</AvatarFallback>
-        </Avatar>
-        <div className="leading-tight">
-          <p className="text-sm font-medium">{name}</p>
-          <p className="text-xs text-muted-foreground capitalize">{role || "no role"}</p>
-        </div>
+    <header className="m-4 mb-0 rounded-xl border border-white/10 bg-background/70 backdrop-blur-md px-6 py-4 shadow-md flex items-center justify-between">
+      <div className="text-base sm:text-lg font-semibold text-foreground tracking-tight">
+        Welcome, {user?.user_metadata?.name || user?.email}
       </div>
 
-      <Button size="sm" variant="outline" onClick={handleLogout}>
-        Logout
-      </Button>
-    </div>
+      <div className="flex items-center gap-4 text-sm">
+        <div className="flex items-center gap-1 text-muted-foreground capitalize">
+          <UserCircle size={18} />
+          {role}
+        </div>
+
+        <button
+          onClick={handleLogout}
+          className="flex items-center gap-1 text-red-500 hover:text-red-600 transition"
+        >
+          <LogOut size={18} />
+          Logout
+        </button>
+      </div>
+    </header>
   )
 }

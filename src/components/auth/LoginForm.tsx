@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 import { Input } from "@/components/ui/input"
@@ -12,11 +12,18 @@ export function LoginForm() {
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
+  const emailRef = useRef<HTMLInputElement>(null)
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    setLoading(true)
     setError("")
+
+    if (password.length < 6) {
+      setError("Password minimal 6 karakter")
+      return
+    }
+
+    setLoading(true)
 
     const { error } = await supabase.auth.signInWithPassword({
       email,
@@ -27,6 +34,7 @@ export function LoginForm() {
 
     if (error) {
       setError("Email atau password salah")
+      emailRef.current?.focus()
     } else {
       router.push("/dashboard")
     }
@@ -35,6 +43,7 @@ export function LoginForm() {
   return (
     <form onSubmit={handleLogin} className="space-y-4">
       <Input
+        ref={emailRef}
         type="email"
         placeholder="Email"
         value={email}

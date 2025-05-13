@@ -23,14 +23,14 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const fetchUser = async () => {
-      const { data: { user }, error: userError } = await supabase.auth.getUser()
-      console.log("🔍 Supabase Auth User:", user)
-      if (userError) console.error("❌ Error fetching auth user:", userError)
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+      const user = session?.user
+      if (sessionError) console.error("❌ Error fetching session:", sessionError)
+      console.log("🔍 Supabase Session User:", user)
 
       setUser(user)
 
       if (user) {
-        // Step 1: Ambil role_id dari users
         const { data: userData, error: userErr } = await supabase
           .from("users")
           .select("role_id")
@@ -38,10 +38,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           .single()
 
         if (userErr) console.error("❌ Error fetching role_id:", userErr)
-
         const roleId = userData?.role_id
 
-        // Step 2: Ambil nama role dari roles table
         if (roleId) {
           const { data: roleData, error: roleErr } = await supabase
             .from("roles")

@@ -2,7 +2,7 @@ import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import { UserProvider } from "@/context/user-context"
 import "./globals.css"
-
+import { Toaster } from 'sonner'
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
@@ -19,6 +19,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className={`${inter.variable} bg-background text-foreground min-h-screen`}>
+        <Toaster />
         <UserProvider>{children}</UserProvider>
       </body>
     </html>

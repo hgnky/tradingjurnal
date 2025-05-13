@@ -1,30 +1,45 @@
 "use client"
 
-import { useUser } from "@/context/user-context"
-import { useRouter } from "next/navigation"
 import { useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { useUser } from "@/context/user-context"
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 
-export default function AdminDashboard() {
-  const { user, loading } = useUser()
+export default function AdminDashboardPage() {
+  const { user, role, loading } = useUser()
   const router = useRouter()
 
   useEffect(() => {
-    if (!loading) {
-      if (!user || user.role !== "admin") {
-        router.replace("/unauthorized")
-      }
+    if (!loading && role !== "admin") {
+      router.push("/unauthorized")
     }
-  }, [user, loading])
+  }, [role, loading])
 
-  if (loading || !user) {
-    return <p className="text-center mt-10">Memuat...</p>
-  }
+  if (loading || role !== "admin") return <div className="p-4">Loading...</div>
 
   return (
-    <div className="max-w-4xl mx-auto py-10 px-4">
-      <h1 className="text-2xl font-bold mb-4">Admin Dashboard</h1>
-      <p>Selamat datang, {user.name || user.email}</p>
-      <p>Role Anda: <strong>{user.role}</strong></p>
+    <div className="p-6 space-y-6">
+      <h1 className="text-2xl font-bold">Admin Dashboard</h1>
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <CardLink title="Manage Users" href="/admin/users" />
+        <CardLink title="Journals Monitor" href="/admin/journals" />
+        <CardLink title="Materials Manager" href="/admin/materials" />
+        <CardLink title="AI Forecasts" href="/admin/forecasts" />
+        <CardLink title="Manual Payments" href="/admin/payments" />
+        <CardLink title="Admin Logs" href="/admin/logs" />
+      </div>
     </div>
+  )
+}
+
+function CardLink({ title, href }: { title: string; href: string }) {
+  return (
+    <Card>
+      <CardHeader><CardTitle>{title}</CardTitle></CardHeader>
+      <CardContent>
+        <a href={href} className="text-blue-500 hover:underline text-sm">Open</a>
+      </CardContent>
+    </Card>
   )
 }

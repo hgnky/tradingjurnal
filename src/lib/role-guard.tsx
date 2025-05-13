@@ -5,12 +5,22 @@ import { useRouter } from "next/navigation"
 import { useUser } from "@/context/user-context"
 
 export function useRoleGuard(allowed: string[]) {
-  const { role } = useUser()
+  const { role, loading } = useUser()
   const router = useRouter()
 
   useEffect(() => {
-    if (role && !allowed.includes(role)) {
-      router.push("/unauthorized")
+    // Tunggu sampai loading selesai
+    if (loading) return
+
+    // Jika role tidak ada (belum login), redirect ke login
+    if (!role) {
+      router.push("/auth/login")
+      return
     }
-  }, [role])
+
+    // Jika role tidak diizinkan, redirect ke unauthorized
+    if (!allowed.includes(role)) {
+      router.push("/auth/login")
+    }
+  }, [role, loading])
 }

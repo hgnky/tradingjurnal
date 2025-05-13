@@ -3,6 +3,8 @@ node_modules
 .next
 dist
 out
+.env.local
+
 .DS_Store
 
 # clerk configuration (can include secrets)

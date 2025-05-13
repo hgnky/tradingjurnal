@@ -3,8 +3,10 @@
 import { createContext, useContext, useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
 
+import { User } from "@supabase/supabase-js"
+
 type UserContextType = {
-  user: any
+  user: User | null
   role: string | null
 }
 

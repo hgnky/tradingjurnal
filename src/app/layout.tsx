@@ -10,7 +10,7 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "AudenFX",
   description: "SaaS Trading Journal untuk trader forex, crypto, dan saham",
-})
+}
 
 export default function RootLayout({
   children,

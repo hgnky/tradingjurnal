@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import { Inter } from "next/font/google"
+import { UserProvider } from "@/context/user-context"
 import "./globals.css"
 
 const inter = Inter({
@@ -17,7 +18,9 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" className="dark">
-      <body className={inter.variable}>{children}</body>
+      <body className={`${inter.variable} bg-background text-foreground min-h-screen`}>
+        <UserProvider>{children}</UserProvider>
+      </body>
     </html>
   )
 }

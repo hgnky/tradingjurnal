@@ -37,10 +37,10 @@ export default function Navbar() {
           ))}
         </nav>
         <div className="flex gap-2">
-          <Link href="/login">
+          <Link href="/auth/login">
             <Button variant="outline" size="sm">Login</Button>
           </Link>
-          <Link href="/register">
+          <Link href="/auth/register">
             <Button size="sm">Get Started</Button>
           </Link>
         </div>

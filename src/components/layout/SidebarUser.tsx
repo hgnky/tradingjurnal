@@ -1,8 +1,11 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useUser } from '@/context/user-context'
+import { supabase } from '@/lib/supabase'
+import dayjs from 'dayjs'
 import { cn } from '@/lib/utils'
 import {
   LayoutDashboard,
@@ -18,9 +21,6 @@ import {
   Settings,
   LogOut,
 } from 'lucide-react'
-import { useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabase'
-import dayjs from 'dayjs'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 
@@ -35,35 +35,44 @@ export default function SidebarUser() {
     if (!user || !role) return
 
     const fetchTimeInfo = async () => {
-      if (role === 'free') {
-        const { data } = await supabase
-          .from('users')
-          .select('trial_ends_at')
-          .eq('id', user.id)
-          .single()
+      try {
+        if (role === 'free') {
+          const { data } = await supabase
+            .from('users')
+            .select('trial_ends_at')
+            .eq('id', user.id)
+            .single()
 
-        if (data?.trial_ends_at) {
-          const end = dayjs(data.trial_ends_at)
-          const left = end.diff(dayjs(), 'day')
-          setDaysLeft(left)
-          setLabel('Trial')
-        }
-      } else if (role === 'subscriber') {
-        const { data } = await supabase
-          .from('subscriptions')
-          .select('end_date')
-          .eq('user_id', user.id)
-          .eq('status', 'active')
-          .single()
+          if (data?.trial_ends_at) {
+            const end = dayjs(data.trial_ends_at)
+            const days = Math.max(end.diff(dayjs(), 'day'), 0)
+            setDaysLeft(days)
+            setLabel('Trial')
+          }
+        } else if (role === 'subscriber') {
+          const { data } = await supabase
+            .from('subscriptions')
+            .select('*') // pakai * agar .order bisa jalan
+            .eq('user_id', user.id)
+            .eq('status', 'active')
+            .order('end_date', { ascending: false })
+            .limit(1)
+            .single()
 
-        if (data?.end_date) {
-          const end = dayjs(data.end_date)
-          const left = end.diff(dayjs(), 'day')
-          setDaysLeft(left)
-          setLabel('Subscription')
+          if (data?.end_date) {
+            const end = dayjs(data.end_date)
+            const days = Math.max(end.diff(dayjs(), 'day'), 0)
+            setDaysLeft(days)
+            setLabel('Subscription')
+          }
+        } else if (role === 'raider') {
+          setLabel('Lifetime')
+          setDaysLeft(null)
         }
-      } else if (role === 'raider') {
-        setLabel('Lifetime')
+      } catch (err) {
+        console.error('[Sidebar Countdown Error]', err)
+        setDaysLeft(null)
+        setLabel('')
       }
     }
 
@@ -97,7 +106,12 @@ export default function SidebarUser() {
   ]
 
   const navMaterials = [
-    { href: '/dashboard/materials', label: 'Materials', icon: BookOpen, allowed: ['subscriber', 'raider', 'admin'] },
+    {
+      href: '/dashboard/materials',
+      label: 'Materials',
+      icon: BookOpen,
+      allowed: ['subscriber', 'raider', 'admin'],
+    },
     {
       href: '/dashboard/materials/premium',
       label: 'Premium Materials',
@@ -135,7 +149,6 @@ export default function SidebarUser() {
         <div className="space-y-6">
           <div className="text-lg font-bold px-2">AudenFX</div>
 
-          {/* Main */}
           <div>
             <p className="text-xs text-muted-foreground px-3 mb-1">Main</p>
             <nav className="space-y-1">
@@ -164,7 +177,6 @@ export default function SidebarUser() {
 
           <Separator />
 
-          {/* Materials */}
           <div>
             <p className="text-xs text-muted-foreground px-3 mb-1">Materials</p>
             <nav className="space-y-1">
@@ -193,7 +205,6 @@ export default function SidebarUser() {
 
           <Separator />
 
-          {/* Account */}
           <div>
             <p className="text-xs text-muted-foreground px-3 mb-1">Account</p>
             <nav className="space-y-1">
@@ -232,7 +243,6 @@ export default function SidebarUser() {
           )}
         </div>
 
-        {/* Status */}
         <div className="mt-6 rounded-md bg-muted/40 p-3 text-xs flex flex-col gap-2 text-muted-foreground">
           <div className="flex items-center gap-2 font-medium">
             {roleIcon}
@@ -244,12 +254,12 @@ export default function SidebarUser() {
               <BadgeCheck size={14} className="text-green-500" />
               Lifetime access aktif
             </div>
-          ) : (
+          ) : label ? (
             <div className="flex items-center gap-2">
               <Clock size={14} />
               {label}: {daysLeft ?? '-'} hari
             </div>
-          )}
+          ) : null}
         </div>
       </div>
     </aside>

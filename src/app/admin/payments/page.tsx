@@ -1,119 +1,118 @@
-"use client"
+'use client'
 
-import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
-import { useUser } from "@/context/user-context"
-import { supabase } from "@/lib/supabase-browser"
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
-import { Table, TableHeader, TableBody, TableRow, TableCell } from "@/components/ui/table"
-import { Button } from "@/components/ui/button"
+import { useEffect, useState } from 'react'
+import { supabase } from '@/lib/supabase'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { useUser } from '@/context/user-context'
+import { useRouter } from 'next/navigation'
 
-type Payment = {
+type ManualPayment = {
   id: string
   user_id: string
-  amount: number
   plan: string
+  amount: number
   bank_name: string
   transfer_date: string
   proof_url: string
-  status: string
-  user: {
-    email: string
-    name: string
-  }
+  created_at: string
 }
 
 export default function AdminPaymentsPage() {
   const { role, loading } = useUser()
   const router = useRouter()
-  const [payments, setPayments] = useState<Payment[]>([])
+
+  const [payments, setPayments] = useState<ManualPayment[]>([])
+  const [fetching, setFetching] = useState(true)
+  const [actionLoading, setActionLoading] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!loading && role !== "admin") {
-      router.replace("/unauthorized")
-    }
+    if (!loading && role !== 'admin') router.push('/unauthorized')
   }, [role, loading])
 
-  useEffect(() => {
-    const fetchPayments = async () => {
-      const { data, error } = await supabase
-        .from("manual_payments")
-        .select("*, user:users(email, name)")
-        .order("created_at", { ascending: false })
+  const fetchPayments = async () => {
+    setFetching(true)
+    const { data, error } = await supabase
+      .from('manual_payments')
+      .select('*')
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false })
 
-      if (error) {
-        console.error("❌ Failed to fetch payments:", error)
-        return
-      }
+    if (!error && data) setPayments(data)
+    setFetching(false)
+  }
 
-      setPayments(data as Payment[])
+  const handleAction = async (id: string, status: 'approved' | 'rejected') => {
+    setActionLoading(id)
+    const { error } = await supabase
+      .from('manual_payments')
+      .update({ status })
+      .eq('id', id)
+
+    if (!error) {
+      fetchPayments()
     }
 
+    setActionLoading(null)
+  }
+
+  useEffect(() => {
     fetchPayments()
   }, [])
 
-  const handleAction = async (id: string, action: "approve" | "reject") => {
-    const res = await fetch(`/api/admin/payments/manual/${id}/${action}`, {
-      method: "PUT"
-    })
-
-    if (res.ok) {
-      setPayments((prev) => prev.map(p => p.id === id ? { ...p, status: action === "approve" ? "approved" : "rejected" } : p))
-    } else {
-      console.error("❌ Failed to update status")
-    }
-  }
-
-  if (loading || role !== "admin") {
-    return <div className="p-4">Loading payments...</div>
+  if (loading || role !== 'admin' || fetching) {
+    return <div className="p-6">Memuat pembayaran...</div>
   }
 
   return (
     <div className="p-6 space-y-6">
-      <h1 className="text-2xl font-bold">Manual Payments</h1>
+      <h1 className="text-2xl font-bold">Verifikasi Manual Payment</h1>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Pending Payments</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableCell>User</TableCell>
-                <TableCell>Plan</TableCell>
-                <TableCell>Bank</TableCell>
-                <TableCell>Amount</TableCell>
-                <TableCell>Bukti</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>Aksi</TableCell>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {payments.map((p) => (
-                <TableRow key={p.id}>
-                  <TableCell>{p.user?.email}</TableCell>
-                  <TableCell className="capitalize">{p.plan}</TableCell>
-                  <TableCell>{p.bank_name}</TableCell>
-                  <TableCell>Rp{p.amount.toLocaleString()}</TableCell>
-                  <TableCell>
-                    <a href={p.proof_url} target="_blank" className="text-blue-600 underline">Lihat</a>
-                  </TableCell>
-                  <TableCell className="capitalize">{p.status}</TableCell>
-                  <TableCell className="space-x-2">
-                    {p.status === "pending" && (
-                      <>
-                        <Button onClick={() => handleAction(p.id, "approve")} variant="success">Approve</Button>
-                        <Button onClick={() => handleAction(p.id, "reject")} variant="destructive">Reject</Button>
-                      </>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+      {payments.length === 0 ? (
+        <p className="text-muted-foreground">Tidak ada pembayaran menunggu verifikasi.</p>
+      ) : (
+        <div className="grid gap-4">
+          {payments.map((payment) => (
+            <Card key={payment.id}>
+              <CardHeader>
+                <CardTitle>{payment.plan.toUpperCase()} – Rp {payment.amount.toLocaleString('id-ID')}</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 text-sm">
+                <p><strong>User ID:</strong> {payment.user_id}</p>
+                <p><strong>Bank:</strong> {payment.bank_name}</p>
+                <p><strong>Tanggal Transfer:</strong> {payment.transfer_date}</p>
+                <p>
+                  <strong>Bukti:</strong>{' '}
+                  <a
+                    href={payment.proof_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-blue-500 underline"
+                  >
+                    Lihat Gambar
+                  </a>
+                </p>
+                <div className="flex gap-2 pt-3">
+                  <Button
+                    onClick={() => handleAction(payment.id, 'approved')}
+                    disabled={actionLoading === payment.id}
+                    variant="success"
+                  >
+                    Approve
+                  </Button>
+                  <Button
+                    onClick={() => handleAction(payment.id, 'rejected')}
+                    disabled={actionLoading === payment.id}
+                    variant="destructive"
+                  >
+                    Reject
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

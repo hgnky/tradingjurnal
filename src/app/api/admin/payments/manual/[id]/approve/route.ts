@@ -1,28 +1,28 @@
-import { createServerActionClient } from "@supabase/auth-helpers-nextjs"
-import { cookies } from "next/headers"
+import { NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
 
-export async function PUT(_: Request, { params }: { params: { id: string } }) {
-  const supabase = createServerActionClient({ cookies })
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
 
-  const { data: payment } = await supabase
-    .from("manual_payments")
-    .select("user_id, plan")
-    .eq("id", params.id)
-    .single()
+export async function PUT(req: Request) {
+  const url = new URL(req.url)
+  const id = url.pathname.split('/').slice(-2)[0] // ambil ID dari path sebelum /approve
 
-  if (!payment) return Response.json({ error: "Not found" }, { status: 404 })
+  if (!id) {
+    return NextResponse.json({ error: 'Missing manual_payment ID' }, { status: 400 })
+  }
 
-  // Ambil role_id dari tabel roles
-  const { data: roles } = await supabase.from("roles").select("id, name")
-  const role = roles?.find(r => r.name === payment.plan)
+  // Update status ke approved
+  const { error } = await supabase
+    .from('manual_payments')
+    .update({ status: 'approved' })
+    .eq('id', id)
 
-  if (!role) return Response.json({ error: "Invalid role" }, { status: 400 })
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
 
-  await supabase.from("users").update({ role_id: role.id }).eq("id", payment.user_id)
-
-  await supabase.from("manual_payments").update({
-    status: "approved"
-  }).eq("id", params.id)
-
-  return Response.json({ success: true })
+  return NextResponse.json({ success: true })
 }

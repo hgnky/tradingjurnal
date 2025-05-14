@@ -1,37 +1,46 @@
 import { NextResponse } from 'next/server'
-import { createServerClient } from '@/lib/supabase/server'
+import { createClient } from '@supabase/supabase-js'
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
 
 export async function POST(req: Request) {
-  const supabase = createServerClient()
+  const { userId, plan } = await req.json()
 
-  const body = await req.json()
-  const { plan, amount } = body
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
-  // simpan invoice manual
-  await supabase.from('invoices').insert({
-    user_id: user.id,
-    amount,
-    description: `Upgrade ke ${plan}`
-  })
-
-  // update role (manual)
-  if (plan === 'subscriber') {
-    await supabase
-      .from('users')
-      .update({ role_id: 2 }) -- sesuaikan ID role
-      .eq('id', user.id)
-  } else if (plan === 'raider') {
-    await supabase
-      .from('users')
-      .update({ role_id: 3 })
-      .eq('id', user.id)
+  if (!userId || !plan) {
+    return NextResponse.json({ error: 'Missing userId or plan' }, { status: 400 })
   }
 
-  return NextResponse.json({ success: true })
+  try {
+    let roleId: string | null = null
+
+    // Get role_id from roles table based on plan name
+    const { data: roleData, error: roleError } = await supabase
+      .from('roles')
+      .select('id')
+      .eq('name', plan)
+      .single()
+
+    if (roleError || !roleData) {
+      return NextResponse.json({ error: 'Role not found' }, { status: 404 })
+    }
+
+    roleId = roleData.id
+
+    // Update user role
+    const { error: updateError } = await supabase
+      .from('users')
+      .update({ role_id: roleId })
+      .eq('id', userId)
+
+    if (updateError) {
+      return NextResponse.json({ error: updateError.message }, { status: 500 })
+    }
+
+    return NextResponse.json({ success: true })
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 })
+  }
 }

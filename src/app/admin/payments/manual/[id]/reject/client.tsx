@@ -7,9 +7,9 @@ export default function RejectClient({ id }: { id: string }) {
   const router = useRouter()
 
   useEffect(() => {
-    console.log('🔍 Reject manual payment ID:', id)
+    console.log('🔍 Reject payment ID:', id)
 
-    // TODO: panggil API reject
+    // TODO: panggil API atau supabase untuk update status
     // await supabase.from('manual_payments').update({ status: 'rejected' }).eq('id', id)
   }, [id])
 
@@ -18,9 +18,6 @@ export default function RejectClient({ id }: { id: string }) {
       <h1 className="text-2xl font-bold text-red-600">Reject Manual Payment</h1>
       <p className="text-sm text-muted-foreground">
         Payment ID: <span className="font-mono">{id}</span>
-      </p>
-      <p className="text-sm">
-        Kamu bisa mengirim logika penolakan ke Supabase, update status ke <code>'rejected'</code>, dan redirect admin setelah selesai.
       </p>
     </div>
   )

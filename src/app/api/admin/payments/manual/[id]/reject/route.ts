@@ -1,32 +1,12 @@
-// src/app/api/admin/payments/manual/[id]/reject/route.ts
-import { NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/supabase/server';
+import { createServerActionClient } from "@supabase/auth-helpers-nextjs"
+import { cookies } from "next/headers"
 
-export async function POST(
-  req: Request,
-  { params }: { params: { id: string } }
-) {
-  const supabase = createServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+export async function PUT(_: Request, { params }: { params: { id: string } }) {
+  const supabase = createServerActionClient({ cookies })
 
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  await supabase.from("manual_payments").update({
+    status: "rejected"
+  }).eq("id", params.id)
 
-  // Anda bisa menerima detail reason dari body jika diperlukan
-  const { reason } = await req.json();
-
-  // Lakukan reject pada record pembayaran
-  const { error } = await supabase
-    .from('payments')
-    .update({ status: 'rejected', rejected_reason: reason })
-    .eq('id', params.id);
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-
-  return NextResponse.json({ success: true });
+  return Response.json({ success: true })
 }
